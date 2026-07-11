@@ -7,15 +7,9 @@ public class RTSCameraController : MonoBehaviour
     private RTSControls controls;
     public static RTSCameraController instance;
 
-    // If we want to select an item to follow, inside the item script add:
-    // public void OnMouseDown(){
-    //   CameraController.instance.followTransform = transform;
-    // }
-
     [Header("General")]
     [SerializeField] Transform cameraTransform;
     public Transform followTransform;
-    Vector3 newPosition;
     Vector3 dragStartPosition;
     Vector3 dragCurrentPosition;
     
@@ -28,8 +22,10 @@ public class RTSCameraController : MonoBehaviour
     [Header("Keyboard Movement")]
     [SerializeField] float fastSpeed = 0.05f;
     [SerializeField] float normalSpeed = 0.01f;
-    [SerializeField] float movementSensitivity = 1f; // Hardcoded Sensitivity
-    float movementSpeed;
+    [SerializeField] float acceleration = 8f;
+    [SerializeField] float deceleration = 12f;
+
+    private Vector3 currentVelocity;
 
     [Header("Edge Scrolling Movement")]
     [SerializeField] float edgeSize = 50f;
@@ -67,10 +63,6 @@ public class RTSCameraController : MonoBehaviour
     private void Start()
     {
         instance = this;
-
-        newPosition = transform.position;
-
-        movementSpeed = normalSpeed;
     }
 
     private void Update()
@@ -94,6 +86,8 @@ public class RTSCameraController : MonoBehaviour
 
     void HandleCameraMovement()
     {
+        float targetSpeed = normalSpeed;
+        Vector3 targetVelocity = Vector3.zero;
         // Mouse Drag
         if (moveWithMouseDrag)
         {
@@ -103,22 +97,22 @@ public class RTSCameraController : MonoBehaviour
         // Keyboard Control
         if (moveWithKeyboad)
         {
-            movementSpeed = controls.Camera.FastMove.IsPressed()
+            targetSpeed = controls.Camera.FastMove.IsPressed()
                 ? fastSpeed
                 : normalSpeed;
 
             Vector2 move = controls.Camera.Move.ReadValue<Vector2>();
 
-            Vector3 direction =
+            Vector3 desiredDirection =
                 transform.forward * move.y +
                 transform.right * move.x;
 
-            direction.y = 0f;
+            desiredDirection.y = 0f;
 
-            if (direction.sqrMagnitude > 1f)
-                direction.Normalize();
+            if (desiredDirection.sqrMagnitude > 1f)
+                desiredDirection.Normalize();
 
-            newPosition += direction * movementSpeed;
+            targetVelocity = desiredDirection * targetSpeed;
         }
 
         // Edge Scrolling
@@ -128,7 +122,7 @@ public class RTSCameraController : MonoBehaviour
             // Move Right
             if (mousePos.x > Screen.width - edgeSize)
             {
-                newPosition += (transform.right * movementSpeed);
+                targetVelocity += transform.right * targetSpeed;
                 ChangeCursor(CursorArrow.RIGHT);
                 isCursorSet = true;
             }
@@ -136,7 +130,7 @@ public class RTSCameraController : MonoBehaviour
             // Move Left
             else if (mousePos.x < edgeSize)
             {
-                newPosition += (transform.right * -movementSpeed);
+                targetVelocity -= transform.right * targetSpeed;
                 ChangeCursor(CursorArrow.LEFT);
                 isCursorSet = true;
             }
@@ -144,7 +138,7 @@ public class RTSCameraController : MonoBehaviour
             // Move Up
             else if (mousePos.y > Screen.height - edgeSize)
             {
-                newPosition += (transform.forward * movementSpeed);
+                targetVelocity += transform.forward * targetSpeed;
                 ChangeCursor(CursorArrow.UP);
                 isCursorSet = true;
             }
@@ -152,7 +146,7 @@ public class RTSCameraController : MonoBehaviour
             // Move Down
             else if (mousePos.y < edgeSize)
             {
-                newPosition += (transform.forward * -movementSpeed);
+                targetVelocity -= transform.forward * targetSpeed;
                 ChangeCursor(CursorArrow.DOWN);
                 isCursorSet = true;
             }
@@ -166,7 +160,16 @@ public class RTSCameraController : MonoBehaviour
             }
         }
 
-        transform.position = Vector3.Lerp(transform.position, newPosition, Time.deltaTime * movementSensitivity);
+        float rate = targetVelocity.sqrMagnitude > currentVelocity.sqrMagnitude
+            ? acceleration
+            : deceleration;
+
+        currentVelocity = Vector3.MoveTowards(
+            currentVelocity,
+            targetVelocity,
+            rate * Time.deltaTime);
+
+        transform.position += currentVelocity * Time.deltaTime;
 
         Cursor.lockState = CursorLockMode.Confined; // If we have an extra monitor we don't want to exit screen bounds
     }
@@ -199,8 +202,6 @@ public class RTSCameraController : MonoBehaviour
         }
     }
 
-
-
     private void HandleMouseDragInput()
     {
         if (controls.Camera.DragCamera.WasPressedThisFrame() && EventSystem.current.IsPointerOverGameObject() == false)
@@ -226,7 +227,7 @@ public class RTSCameraController : MonoBehaviour
             {
                 dragCurrentPosition = ray.GetPoint(entry);
 
-                newPosition = transform.position + dragStartPosition - dragCurrentPosition;
+                transform.position += dragStartPosition - dragCurrentPosition;
             }
         }
     }

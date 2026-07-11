@@ -1218,10 +1218,11 @@ MonoBehaviour:
   moveWithKeyboad: 1
   moveWithEdgeScrolling: 1
   moveWithMouseDrag: 1
-  fastSpeed: 0.5
-  normalSpeed: 0.1
-  movementSensitivity: 1
-  edgeSize: 50
+  fastSpeed: 60
+  normalSpeed: 30
+  acceleration: 50
+  deceleration: 200
+  edgeSize: 15
   cursorArrowUp: {fileID: 2800000, guid: 97d5fc294b673904aaaca72972c9f9eb, type: 3}
   cursorArrowDown: {fileID: 2800000, guid: 3be00cdf8b73d2c43b388d433df391ae, type: 3}
   cursorArrowLeft: {fileID: 2800000, guid: 2d0f3f08ad8854340bfba971de65ad47, type: 3}
