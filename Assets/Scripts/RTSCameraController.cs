@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 
 public class RTSCameraController : MonoBehaviour
 {
+    private RTSControls controls;
     public static RTSCameraController instance;
 
     // If we want to select an item to follow, inside the item script add:
@@ -39,6 +40,21 @@ public class RTSCameraController : MonoBehaviour
     public Texture2D cursorArrowRight;
 
     CursorArrow currentCursor = CursorArrow.DEFAULT;
+
+    private void Awake()
+    {
+        controls = new RTSControls();
+    }
+
+    private void OnEnable()
+    {
+        controls.Enable();
+    }
+
+    private void OnDisable()
+    {
+        controls.Disable();
+    }
     enum CursorArrow
     {
         UP,
@@ -87,33 +103,24 @@ public class RTSCameraController : MonoBehaviour
         // Keyboard Control
         if (moveWithKeyboad)
         {
-            if (Keyboard.current.leftCtrlKey.isPressed)
-            {
-                movementSpeed = fastSpeed;
-            }
-            else
-            {
-                movementSpeed = normalSpeed;
-            }
+            movementSpeed = controls.Camera.FastMove.IsPressed()
+                ? fastSpeed
+                : normalSpeed;
 
-            if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed)
-            {
-                newPosition += (transform.forward * movementSpeed);
-            }
-            if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed)
-            {
-                newPosition += (transform.forward * -movementSpeed);
-            }
-            if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
-            {
-                newPosition += (transform.right * movementSpeed);
-            }
-            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed)
-            {
-                newPosition += (transform.right * -movementSpeed);
-            }
+            Vector2 move = controls.Camera.Move.ReadValue<Vector2>();
+
+            Vector3 direction =
+                transform.forward * move.y +
+                transform.right * move.x;
+
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude > 1f)
+                direction.Normalize();
+
+            newPosition += direction * movementSpeed;
         }
-        
+
         // Edge Scrolling
         if (moveWithEdgeScrolling)
         {
@@ -196,7 +203,7 @@ public class RTSCameraController : MonoBehaviour
 
     private void HandleMouseDragInput()
     {
-        if (Mouse.current.middleButton.wasPressedThisFrame && EventSystem.current.IsPointerOverGameObject() == false)
+        if (controls.Camera.DragCamera.WasPressedThisFrame() && EventSystem.current.IsPointerOverGameObject() == false)
         {
             Plane plane = new Plane(Vector3.up, Vector3.zero);
             Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
@@ -208,7 +215,7 @@ public class RTSCameraController : MonoBehaviour
                 dragStartPosition = ray.GetPoint(entry);
             }
         }
-        if (Mouse.current.middleButton.isPressed && EventSystem.current.IsPointerOverGameObject() == false)
+        if (controls.Camera.DragCamera.IsPressed() && EventSystem.current.IsPointerOverGameObject() == false)
         {
             Plane plane = new Plane(Vector3.up, Vector3.zero);
             Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
