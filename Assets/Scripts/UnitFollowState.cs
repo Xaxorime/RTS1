@@ -10,6 +10,7 @@ public class UnitFollowState : StateMachineBehaviour
     override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         attackController = animator.transform.GetComponent<AttackController>();
+        attackController.SetFollowStateMaterial();
         agent = animator.transform.GetComponent<NavMeshAgent>();
     }
 
@@ -27,12 +28,12 @@ public class UnitFollowState : StateMachineBehaviour
                 agent.SetDestination(attackController.targetToAttack.position);
                 animator.transform.LookAt(attackController.targetToAttack);
 
-                //float distanceFromTarget = Vector3.Distance(attackController.targetToAttack.position, animator.transform.position);
-                //if (distanceFromTarget < attackingDistance) 
-                //{
-                //    agent.SetDestination(animator.transform.position);
-                //    animator.SetBool("isAttacking", true);
-                //}
+                float distanceFromTarget = Vector3.Distance(attackController.targetToAttack.position, animator.transform.position);
+                if (distanceFromTarget < attackingDistance)
+                {
+                    agent.SetDestination(animator.transform.position);
+                    animator.SetBool("isAttacking", true);
+                }
             }
         }
 
